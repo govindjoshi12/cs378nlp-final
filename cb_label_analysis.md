@@ -1,0 +1,388 @@
+## Findings
+
+#### Tl;dr, so now what?
+- Combine CA scheduled and completed
+- Combine "Client declined to sign release of info" with "Release of Info signed for all..."
+- Try remove
+  - Cient not assigned DACC CSR due to court order
+  - Asked client to complete a DACC customer survey (or remove the one example that has no survey info)
+  - HMIS Release of Info - Declined
+- map words down to one word type
+  - Need to decide what to map to:
+  - cl: client, cl, clt
+  - bc: bc, birth cert, birth certificate
+  - tx id: tx id, texas id
+  - cm: case manager, casemanager, writer, cm
+  - ca: coordinated assessment, ca
+  - ssc: ss, ssc
+  - etc.
+- Try 512 word tokens 
+- Explain why contradictions set doesn't work
+- Overall The data is not consistent and building a classifier from solely this data won't be effective
+- Few shot training with note and labels crafted from patterns observed from samples could be useful. 
+- Grouping labels into label types (ROI, CA, Assessment can be one type: intake), and then recommending label types
+  - Entries can have multiple label types, and the labels can be of multiple types (ex. ROI in both intake and just its own thing too)
+- Questions for CMs
+  - Does intake paperwork include "Treatment Plan completed and signed?"
+  - Is intake only for ICM? Or any walk-in client?
+  - Should Client Assessment checkboxes also be consolidated?
+  - Does an ROI have to be signed for a referral?
+---
+### Analyzing each label
+
+#### Client not assigned DACC CSR due to court order. Count: 2
+- There are two notes in here, neither contain any info about the label. It might be best to remove these examples. 
+- IDEA: Create a dataset that contains the label text as the input and output. 
+  - Can try a fewshot with this set, and with adding this set onto the full set.
+---
+#### Asked client to complete a DACC Customer survey. Count: 3
+- Key Phrases that correspond to label:
+  - "Client worked on filling out the survey."
+  - "Client completed survey"
+- One of the notes mentioned the client completing "UT survey" but that's not the DACC CSR Survey
+- One note also contained information about ROI (Release of information)
+---
+#### HMIS Release of Information - Declined. Count: 4
+- None of the notes contain information about the label. 
+- One of the notes contains both HMIS agreed and declined. (1494129)
+  - Note involves completing coordinated assessment, and labels include all related labels so I think the CM was trying out the interface? EIther way, this note may need to be removed from train set.
+---
+#### Client declined to sign release of information: 7
+- Key phrases:
+  - "Client declined to sign consent for CM to speak with HP staff
+  - "Client signed ROIs for IC, CuC, and Goodwill"
+  - "Signed all necessary papers and ROIs."
+  - "Completed FS ROI and the first page of ECHO PSH packet"
+  - "Client returned to triage and requested that his ROIs and SSC app be voided"
+  - "This CM went ahead and shredded all his signed ROIs"
+  - "Grievance & Exiting ICM policies, CuC, IC, Austin Energy, HMIS & DACC to Sister ROIs"
+  - "CLTs HMIS ROI uploaded to HMIS"
+  - Not quite about declining release of info, but client intake process often overlaps with ROI signing
+    - "ESG-CV RRH case manager met with client at PL 4 to begin filling out ESG-CV intake forms." (key: intake forms)
+    - "Client presented to triage at 3PM for intake appt with this CM for about 90 minutes." 
+- Before even looking at notes, this seems similar to HMIS - declined.
+- Ok so looks like there isn't one release of information form, it's ROI's for any case in which CM may need to speak on client's behalf
+- Also, signing an ROI doesn't mean that the information was released (because note may contain "signed ROI", but label is "declined")
+- One note mentioned making copies of client's ID and BC, but no birth certificate label.
+- More words to map: social security: SSC, CLT: CL
+- "Client Assessment conducted" coincides with "intake"
+- One mentioned that client had TX DL but needed BC, and that SSC is old and needs to be replaced. Yet only pertinent label was Client Texas State ID
+- I think this should be consolidated for "ROIs signed for all appropriate vendors..."
+---
+#### Client Assigned DACC CSR: 20
+- Key phrases:
+  - "Client met with this CM for his intake appointment"
+  - "CM completed the court paperwork process with client and explained that his 36 hours of CSR could be satisfied with case management activities."
+  - "Assigned 36 hours CSR due on date"
+  - "Client was assigned 28 hours of CSR and 8 sober support meetings."
+  - "CM offered to connect client with a recovery coach from Communities for Recovery and informed him meeting with them twice could count for his 36 hours."
+  - "Client must complete 20 hours of DACC Work Crew CSR by ..." 
+  - "Client assigned 36 hours of CSR" 
+  - "Client has been assigned 36 hours of CSR for case no. 160427."
+  - "Options explained and client leaning towards completing said hours with DACC Work Crew."
+  - "Client came in on deferral from judge client owes 15 hours. "
+- Is this Community Service Requirement?
+- I'm seeing several labels occuring together. I think seeing label correlation matrix/heatmap would be insightful
+  - Ex. DACC CSR and Client Assessment Conducted 
+- Other  
+  - Client was provided Texas ID, Client Texas State ID checked
+  - Looks like the DACC CSR is assigned usuall in conjunction with intake.
+  - different label: "Release of information forms signed for all.."
+    - "Client signed ROIs for..."
+    - "CL signed consent for IC, Dell Seton, ..."
+  - One case note just contained "met with client and followed up paperwork" with a lot of intake type labels checked (assessment, CSR, HMIS, etc.)
+  -  Client's birth certificate checked again for BC ordrered.
+---
+#### Client DPS report
+- Key Phrases:
+  - "CM-S Chris suggested CM Taryn run a background check."
+  - "Clients criminal Hx ran"
+  - "CM completed DPS check"
+  - "Criminal Background was run in preperation of finding client housing"
+  - "CM ran DPS report and scanned into clients conf. file."
+  - "A DPS report was run showing last felony conviction in 2015 for obstruction."
+  - "CLT criminal history report saved"
+  - "Clients criminal history ran"
+  - "CLTs criminal history report ran."
+  - "Client completed intake documents, and this CM obtained his criminal background and credit history."
+  - "CLTs DPS report ran & saved to CLTs confidential file"
+  - "CLT DPS report was run"
+  - "CM generated clients DPS criminal history report on this date."
+  - "A DPS report was generated showing clients.."
+  - "DPS report was run..."
+  - "RAN Client DPS Report"
+- Seems to be related to criminal background checks
+- CMs also often run these by themselves without a meeting (i.e., no meeting with client necessary)
+- One note contains a lot of labels tied to intake (assessment, birth certificate, DPS report, id, hmis, ROIs, etc.)
+  - Birth certificate location was mentioned, not ordered, box was checked.
+---
+#### HMIS Release of Information - Agreed, Total:100
+- Key Phrases:
+  - "Client signed ROIs"
+  - "HMIS Profile updated, ROI signed"
+- Almost always occurring with "HMIS Profile created/updated" And a lot of intake labels
+- One case note details the entire DACC intake process (1501327)
+  - " This writer assisted CL in completing intake documents: CL Grievance Policy, DACC Notice of Privacy Practices, DACC Initial CL Assessment, CM Plan of Action, & HMIS ROI. All documents have been uploaded to CLs electronic confidential file. "
+- Several notes include info about client completing CA, but not a lot of specific info about HMIS Release of information. Actually, most of the 20 notes I sampled include info about the Client's Coordinated Assessment and scores. Perhaps it is necessary to agree to HMIS before taking a CA? 
+- I think combining HMIS Agreed and Declined into one label is a good idea because the distinction is usually not made in the casenote.
+  - However, if HMIS is declined, their HMIS profile likely won'te be created updated.
+- In one note, client reported that he needs to apply for ID, BC, and SS, yet those not checked.
+---
+#### Treatment plan (129)
+- Key Phrases
+  - "CLT intake assessment and plan of action completed"
+  - "Case Management Plan of Action completed, scanned, and saved in client confidential file"
+  - "Client expressed interest in case management and an intake assessment was completed"
+  - "Cm met with client for scheduled appointment and completed treatment plan."
+  - Recurring, but not specifically about Treatment plan
+    - "CM met with client for scheduled intake assessment"
+    - "This writer met with the client at ... to conduct .. intake"
+    - "CM met with client for intake"
+    - "THe client completed paperwork"
+    - "CM completed DACC ICM Program intake"
+    - "Met with client at ... and completed treatment plan and signed ROIs"
+    - "Completed intake assessment"
+- Occurs with Client Assessment Conducted, and even if CAC is not checked, it's still checked in conjunction with intake process
+- Treatment plan is often referred to in the case notes as "Plan of action"
+---
+#### Coordinated Assessment Scheduled at DACC, View Count: 20, Total Count: 268
+- Key Phrases:
+  - "Client met with OCCM and requested to reschedule CA and DPS appointment"
+  - "Client was a no show for scheduled CA"
+  - "Met with CL for scheduled appointment and completed a CA. CL scored ..."
+  - "Clients CA is out of date and CM scheduled one with ... "
+  - "CA scheduled with HOST Sean on Thursday, ... "
+  - Phrases for completing CA rather than specifically about scheduling:
+    - "Completed CA at DACC. Client score ##. RRH made"
+    - "client completed coordinated assessment, scored #. Referrals were made for ..."
+    - "Client completed CA at DACC."
+    - "Client completed coordinated assessment"
+    - "Client was advised to update his coordinated assessment"
+    - "Client agreed to complete CA for 14 hours credit. Client scored 11, PSH referrals were made"
+    - "Cm called client and scheduled appointment to update CA on 04/30 at 10am over phone."
+    - "Client completed CA; Scored #"
+- Does this label mean that the assessment was scheduled at the meeting, or that this is the scheduled meeting for the CA?
+- After reading case notes, it seems the label is used for both scheduling a CA, or noting that there was a CA scheduled in this meeting... so there's some ambiguity here.
+- Rescheduled and Copmleted occur together ~50% of the time according to the heatmap. 
+- Some notes actually contain text about "rescheduling" 
+- Since this is a recommendation in deployment, I think putting the two labels together isn't a problem since they have so much vocab overlap.
+---
+#### LABEL: Coordinated Assessment Completed at DACC, View Count: 20, Total Count: 294
+- Key phrases here are identical to the "phrases for completing CA" section above
+  - "CM met with client at McCabe Center to update CA"
+- Should def map coordinated assessment to CA
+---
+#### LABEL: Client Assessment Conducted, View Count: 20, Total Count: 303
+- Key Phrases:
+  - "CM met with client for scheduled intake"
+  - "Client presented for his scheduled intake"
+  - "CM met with client for scheduled intake appointment"
+  - "This CM met with client on 5/18/21 at 2:30pm at triage for new client intake. CL completed initial assessment, plan of action, ..."
+  - "Client presented for scheduled intake. CM and client filled out intake paperwork ... '
+  - "... arrived to complete DACC intake and EHV HACA paperwork ... signed all the necessary forms"
+- These notes are generally long and contain lots of information about the demeanor of the client, what their goals are, the documents they need to apply to certain places, signing ROIs for different referrals, completing intake paperwork, and details about their past and current situation. 
+- Are intake assessments only for ICM clients? How are new Triage walk-ins handled?
+  - There is one case note in which client presents for triage, then "client called his payee and completed intake virtually, all paperkwork was filled out, and sent to ...
+  - Should look up triage in casenote text
+    - There were 13 notes with triage in their text and "Client Assessment Conducted" in their description
+    - Some contained "client presented to triage for scheduled intake appointment"
+    - So I guess that answers my question
+    - Aside: Data viewer is outdated for checkbox data representation. I should update.
+
+#### LABEL: HMIS profile created/updated, View Count: 20, Total Count: 361
+- Key phrases:
+  - "CLTs HMIS/JEMs profiles updated accordingly"
+  - "CM Bailey added herself as client’s case manager and added entry date into DACC Active ICM under Entry/Exit tab in HMIS"
+  - "Client's HMIS photo updated"
+  - "This CM inquired about CLs current housing and contact information to update HMIS."
+  - "SK explained DACC service, operation hours, and HMIS and created HMIS profile for him. HMIS ROI has been singed and saved in the HMIS and DACC CLT confidential folder."
+  - "CLTs JEMs/HMIS profiles updated w/ CLTs new address.	"
+- A note mentioned some important info:
+  - "ROIs were not signed at this time but client understands the intake process must be completed before case management tasks can begin."
+- I'm seeing a lot of instances of checkboxes not being checked.
+  - For one note, HMIS ROI was signed and HMIS profile was created, but only HMIS Profile created/updated is checked
+  - Similarly, a note mentions that "plan of action signed," but treatment plan was not checked.
+  - So the data itself is not the best data and contains lots of contradictions. 
+  - One way to fix this is in my view is to make a small few-shot set with all the patterns I'm finding here. ~10-20 casenote-label pairs for each label and fine tuning for a few epochs. But then how do you validate? Because you're running on the assumption that the data is wrong. In fact, the whole point of this exercise was that CMs dont check all the boxes, and a recommendation system could be useful
+    - One idea is to, after preprocessing text (mapping different ways of saying one word down to one word), throw out entries for which the label text is not contained in the casenote. 
+---
+#### LABEL: Release of information forms signed for all appropriate vendors and agencies, View Count: 20, Total Count: 384
+- Key Phrases:
+  - "ROI signed for..."
+  - "Client arrived on time for intake and all necessary documents are signed."
+  - "Client expressed motivation for SUD tx and referral paperwork and DACC/IC ROI signed, saved to client file."
+  - "CLT signed DACC and IC ROIs."
+  - "...DACC ROI for FEC, and FEC ROI for DACC (uploaded into his file)."
+  - "The client was interested and a PSH packet and Front Steps ROI were signed."
+  - "The client signed an ROI for IC."
+  - "the clients signed ROIs for one another"
+  - "ROI"
+  - "Cm received completed Release Of Information from ..."
+  - "Client filled out intake paperwork including several ROIs ... "
+  - 
+- Maybe every instance of ROIs needs to be mapped to ROI, because model probably doesn't know that rois is a plural of roi. 
+  - Also, maybe I should use a cased version of distilbert rather than uncased?
+- Occurs often with intake type labels, but also without. Probably for referrals made during case management after intake.
+- Some intake notes have this box checked, but no actual text about ROIs/docs being signed 
+- Another note: while a lot of casenotes have the important pieces of information at the beginning of the note, I have also seen several notes that don't mention info pertinent to the label until half way through or at the end. Models like DistilBERT can take a maximum of 512 tokens for context, and so far I've been training with only 128. 
+- Idea: For summarization of referrals, we can prompt the model get all the "Release of Information" instances because I think an ROI is needed for each organization that client is being referred to.
+---
+#### LABEL: Client Birth certificate, View Count: 20, Total Count: 686
+- Key phrases:
+  - "Clients birth cert arrived in mail"
+  - "received email from ... requesting copy of CLs birth certificate. CM sent ... a copy of CLs BC"
+  - "CM Bailey attempted to order clients BC online but ..."
+  - "This CM received VitalChek email regarding CLs BC order ... Approved!"
+  - "...regarding birth certificate order...regarding her bc...verify information on her birth cert"
+  - "Clients birth certificate arrived and was scanned into his confidential file"
+  - "PLEASE NOTE: CLIENTS BIRTH CERTIFICATE IS IN THE LOCKED FILE."
+  - "CM assisted CLT replace his BC online"
+  - "CM ordered the BC via VitalChek"
+  - "CM ordered CLs BC from VitalChek"
+  - "BC ordered"
+  - "CM was able to order CLs birth certificate"
+  - "Client Birth Certificate to be shipped to DACC."
+  - "Clients ORIGINAL BIRTH CERT arrived"
+- More mappings
+  - birth cert, bc
+  - CLs 
+  - Maybe mapping should be to a semantically rich version. Ex. bc -> Birth certificate? idk
+- Looks like it isn't standard. Can be checked for anything involving BC (ordering, client request, external request from other org's CM, email's regarding BC status)
+- VitalChek is important
+---
+#### LABEL: Client Texas State ID, View Count: 20, Total Count: 767
+- Key Phrases:
+  - "TX ID"
+  - "CM was able to order a replacement TX ID which will be mailed to DACC. "
+  - "This CM successfully replaced CLs TX ID online ..."
+  - "CM also let client know that his TX DL and birth certificate have arrived ... "
+  - "Tx ID"
+  - "Client ID was ordered..."
+  - "Renewed TX ID online for client"
+  - "Clients ID arrived"
+  - "renew her Texas ID"
+  - "CLIENT TOOK HIS TX ID WITH HIM"
+- Very similar to birth certificate patterns
+---
+#### LABEL: Legal Issues, View Count: 20, Total Count: 1834
+- Tried 2 samplings (so 40 notes)
+- Key Phrases (maybe):
+  - "SO deregistration application documents ... Department of State Health Services Council on Sex Offender Treatment"
+  - " CLT doesnt yet have a court date ... Attorney Greer & Judge ... pretrial attorneys"
+  - "... to show the prosecutor his temp ID to show progress on the cases that are on a deferred prosecution.	"
+  - "... he was arrested. Officer ... jail." 
+  - "Cm completed Voter Registration Application with client and will place in mail"
+  -  "...not having the ability to pay the money associated with his case ...  he was told that he would need to address those issues with Judge"
+  -  "Client has some outstanding tickets ... has been advised HOST would assist him in court"
+  -  "... to finish court documents for CLs case."
+  -  "the client had been picked up and is in the jail on Nueces. The client was picked up for parole violation."
+  -  "The client came in today on the arraignment docket. It is likely the client had cases that were reset. "
+  -  "APD officers ... DACC court officers ... police office"
+  -  "clients parole officer ... exit strategy"
+  -  CL reports that he plans to address ticket at DACC"
+  -  "The prosecutor reset 3 Muni cases for Monday..."
+  -  "...the prosecutor agreed to dismiss one case"
+  -  "Prosecutor will provide"
+- Wide variety of phrases that could be legal issues. But a general trend is notes regarding tickets, discussions with prosecutors about cases, words like judge, attorney, etc.
+- My idea about filtering entries that contain any of the label text would fail here -- no entry here actually contains the words "legal" or " legal issues."
+- Several notes without note text contain info about Legal issues
+---
+#### LABEL: No Show, View Count: 20, Total Count: 1893
+- Key Phrases:
+  - "Client did not present for scheduled intake"
+  - "Client did not show up"
+  - "Client has not shown for noon appointment"
+  - "This writer went to CFV to look for CL" 
+  - "...but client was not there"
+  - "The client did not show to the scheduled appt."
+  - "Client did not show for appt."
+  - "Client no showed"
+  - "CL did not show up for scheduled CM appointment"
+  - "Client did not appear to be in his room"
+  - "presented to triage but left before being seen by CM"
+  - "The CLT was offsite"
+  - "left before meeting CM"
+  - "Client did not present ... (to court, for intake, etc.)"
+  - "Client has not arrived"
+  - "promptly left"
+  - "client no show for ..."
+---
+#### LABEL: Attempted client contact, View Count: 20, Total Count: 4946
+- Key Phrases:
+  - "...writer knocked multiple times on CLs door, but CL did not open the door."
+  - "called/attempted to notify ... straight to voicemail."
+  - "called client, but no answer"
+  - "Will attempt to make contact again"
+  - "no answer at client phone"
+  - "CM called CLT and left CM and requested call back"
+  - "attempted to call the client"
+  - "attempted to reach client"
+  - "left VM"
+  - "outreached client at her house... however, unable to locate her"
+  - "left a (card, VM, note, etc.)"
+  - "tried reaching client on DACC phone...no response"
+  - "CM called and left voicemail"
+  - "Client called and left a message for CM explaining she was not able to go"
+- A few notes contain next steps since client didn't show up, so no information about the attempted contact.
+---
+#### LABEL: Collateral Contact, View Count: 20, Total Count: 7543
+- Looking at collateral contact only set
+- Key Phrases:
+  - "Received email from ..."
+  -  "CM received the following email from clients..."
+  -  "Email exchange with Found Comm"
+  -  [Non client person] emailed stating ..."
+  -  "
+  -  Words/symbols that indicate an email: email addresses, email footers, email symbols, etc.
+- So collateral contact seems to be contact with people related to client's case management. Ex. contacts from different referral orgs., And whereas direct contact is with the client themselves. There's 5391 where both direct and collateral contacts happen.
+- There are also several copy pasted emails/messages without other context. 
+- It can also refer to actions taken by CM for client. Ex. CM paid rent. 
+- Maybe the lack of info for other labels, along with no contact words with client indicate collateral?
+- I think I made a mistake with the contradictions set in entailments. Collateral contact is occurring with Attempted client contact and No show in some notes. Of course this is a small sample but maybe the contradictions assumption was not correct. 
+- We could just remove the collateral contact label (not remove entries with  it, just pretend the label doesn't exist). It is overrepresented in the dataset, similar to Direct contact, and these checkboxes are routinely checked by CMs. (same with direct contact, and maybe all contact types: "Direct contact, collateral contact, no show, attempted client contact")
+---
+#### LABEL: Direct Contact, View Count: 20, Total Count: 9563
+- Key Phrases
+  - "CM met with the client"
+  - "Client presented as..."
+  - "Client presented to triage"
+- Not all Direct contact notes actually contain "...met with" type phrases. 
+- We have talked about how collateral contact is a phone call, but I did not see any phone call/message notes when looking at the collateral contact ONLY checkboxes, and here, phone calls/messges are direct contact + collateral contact pairs.
+- Ok interestingly enough, in my small sample of 20 notes, there are so many "incorrect" examples. Ex. direct contact and attempted client contact are checked together twice. 
+- Also looked at ONLY direct contact labels (sampled 80)
+  - Some mention ordering birth certificate and it's not checked
+  - several don't have any info pertaining to any other label
+  - Several Direct Contacts that are just calls or messages.... there seems to be lack of consistency about how they're classifier
+  - Would it be useful for CMs to track items that are provided to client? 
+---
+#### Overall Observations and Ideas
+- Overall The data is not consistent and building a classifier from solely this data won't be effective
+- Few shot training with note and labels crafted from patterns observed from samples could be useful. 
+- I think we need to map different forms of commonly used domain lingo down to single words
+  - Ex. Release of information: ROI, Client: CL, Writer: CM, Coordinated Assessment: CA, etc.
+- Different ways of referring to 
+  - case manager
+    - CM, writer
+  - client
+    - client, CLT, CL
+  - social security
+    - SS, SSC
+  - birth certificate
+    - birth certificate, BC
+  - coordinate assessment
+    - CA
+  - with
+    - w/
+- Observations
+  - Also looks like "CA completed" and "CA Scheduled" (using shorthand for label text) are always checked together (at least in this subset, it is necessary to see the cooccurences when looking at those labels specficially).
+  - Birth certificate
+    - Birth Cerificate label was on one of the notes, and the note contained "Birth Certificate ordered."
+- At the end of the day, this is a recommendation. So instead of providing exact labels to check, we could group labels by type. Ex. intake labels refer to Coordinated assessment, client assessment conducted, release of info, etc. That's a broad example, but we can come up with better categories.
+-  We could just remove the collateral contact label (not remove entries with  it, just pretend the label doesn't exist). It is overrepresented in the dataset, similar to Direct contact, and these checkboxes are routinely checked by CMs. (same with direct contact, and maybe all contact types: "Direct contact, collateral contact, no show, attempted client contact")
+-  Separate idea: tracking incentives provided to clients to see both client and DACC-wide trends
+---
+- Questions for CMs
+  - Does intake paperwork include "Treatment Plan completed and signed?"
+  - Is intake only for ICM? Or any walk-in client?
+  - Should Client Assessment checkboxes also be consolidated?
+  - Does an ROI have to be signed for a referral?
